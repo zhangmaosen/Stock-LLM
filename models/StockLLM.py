@@ -218,21 +218,21 @@ class Model(nn.Module):
             max_values_str = str(max_values[b].tolist()[0])
             median_values_str = str(medians[b].tolist()[0])
             lags_values_str = str(lags[b].tolist())
-            prompt_ = (
-                f"<|start_prompt|>Dataset description: {self.description}"
-                f"Task description: forecast the next {str(self.pred_len)} steps given the previous {str(self.seq_len)} steps information; "
-                "Input statistics: "
-                f"min value {min_values_str}, "
-                f"max value {max_values_str}, "
-                f"median value {median_values_str}, "
-                f"the trend of input is {'upward' if trends[b] > 0 else 'downward'}, "
-                f"top 5 lags are : {lags_values_str}<|<end_prompt>|>"
-            )
-            #prompt_ = '这是一只股票的财经新闻内容，请根据内容和日K线特征，对未来的走势进行预测：'
+            # prompt_ = (
+            #     f"<|start_prompt|>Dataset description: {self.description}"
+            #     f"Task description: forecast the next {str(self.pred_len)} steps given the previous {str(self.seq_len)} steps information; "
+            #     "Input statistics: "
+            #     f"min value {min_values_str}, "
+            #     f"max value {max_values_str}, "
+            #     f"median value {median_values_str}, "
+            #     f"the trend of input is {'upward' if trends[b] > 0 else 'downward'}, "
+            #     f"top 5 lags are : {lags_values_str}<|<end_prompt>|>"
+            # )
+            prompt_ = '这是一只中国A股股票，请根据内容和日K线特征，对未来的收盘价进行预测：'
             prompt.append(prompt_)
         news_prompts = []
         for i in range(B):
-            news = x_txts[i]
+            news = x_txts[i] # title ， key_note two columns
             p = ' '.join(news.apply(lambda row: ''.join(row.dropna().astype(str)), axis=1))
             if len(p) > 1000:
                 p = p[:1000]

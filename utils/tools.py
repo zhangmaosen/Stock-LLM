@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import shutil
+from pathlib import Path
 
 from tqdm import tqdm
 
@@ -65,8 +66,13 @@ class EarlyStopping:
             self.best_score = score
             if self.save_mode:
                 self.save_checkpoint(val_loss, model, path)
+                self.save_logs(val_loss, model, path)
             self.counter = 0
 
+    def save_logs(self, val_loss, model, path):
+        file_path =  path + 'val_loss.log'
+        with open(file_path, 'a') as f:
+            f.write(f'val_loss is {val_loss}\n')
     def save_checkpoint(self, val_loss, model, path):
         if self.verbose:
             if self.accelerator is not None:
