@@ -63,22 +63,29 @@ class Dataset_Stock(Dataset):
         elif self.features == 'S':
             df_data = df_raw[[self.target]]
 
+        divided_cnt = len(df_data)/(self.seq_len+self.pred_len)
+        remainder = len(df_data) % (self.seq_len+self.pred_len)
+        if divided_cnt < 1:
+            self.data_x = []
+            self.data_y = []
+            self.data_stamp = []
+
+            self.data_x_txts = []
+            self.data_y_txts = []
+            return
+        else:
+            all_cnt = len(df_data) - self.seq_len - self.pred_len + 1
+
         # emb_start_at = 2
         # emb_end_at = 2+768*2
         texts_columns = ['title','key_note']#df_raw.columns[emb_start_at:emb_end_at]
         texts = df_raw[texts_columns]
         #df_embeddings = torch.Tensor(df_raw[emb_columns].values).reshape(-1,2,768)
 
-        num_train = int(len(df_raw) * self.train_split)
-        num_test = int(len(df_raw) * self.test_split)
-        num_valid = len(df_raw) - num_train - num_test
-        
-        max_train = True
-        if max_train == True:
-            num_train = int(len(df_raw) - 2*(self.seq_len + self.pred_len))
-            num_test = self.seq_len + self.pred_len
-            num_valid = self.seq_len + self.pred_len
-            
+        num_train = int(all_cnt * self.train_split)
+        num_test = int(all_cnt * self.test_split)
+        num_valid = all_cnt - num_train - num_test
+        #print(f'input sequence length: {len(df_data)}')
         # if num_valid - self.seq_len <= 0 :
         #         self.data_x = []
         #         self.data_y = []
@@ -87,16 +94,25 @@ class Dataset_Stock(Dataset):
         #     if num_valid -self.seq_len <= 0 :
         #         self.data_x = []
         #         self.data_y = []
-        valid_start = num_train  - self.seq_len
-        if valid_start < 0:
-            valid_start = 0
+        # valid_start = len(df_raw)  - self.seq_len - 2*self.pred_len
+        # if valid_start < 0:
+        #     valid_start = 0
             
-        test_start = len(df_data) - num_test - self.seq_len
-        if test_start < 0:
-            test_start = 0
-            
+        # test_start = len(df_data) - num_test - self.seq_len
+        # if test_start < 0:
+        #     test_start = len(df_data) - self.seq_len
+        
+        train_start = 0
+        train_end = train_start if num_train == 0 else (num_train-1) + (self.seq_len + self.pred_len)
+
+        valid_start = num_train  if train_end+1 < len(df_raw) else train_end
+        valid_end = valid_start if num_valid == 0 else  valid_start + (num_valid-1) + (self.seq_len + self.pred_len)
+
+        test_start = num_train + num_valid if valid_end+1 < len(df_raw) else valid_end
+        test_end = test_start if num_test == 0 else test_start + (num_test-1) + (self.seq_len + self.pred_len)
+
         border1s = [0, valid_start ,  test_start]
-        border2s = [num_train, num_train + num_valid, len(df_data)]
+        border2s = [train_end, valid_end, test_end]
         border1 = border1s[self.set_type]
         border2 = border2s[self.set_type]
 
@@ -174,7 +190,7 @@ class ConcatStockDataset(ConcatDataset):
                  target='OT', scale=False, timeenc=1, freq='d',
                  time_col_name='date', use_time_features=True, 
                  percent=100,seasonal_patterns=None,
-                 train_split=0.5, test_split=0.2) -> None:
+                 train_split=0.8, test_split=0.1) -> None:
         split = flag
         # load files from root_path use pathlib
         files = list(Path(root_path).glob(data_path))

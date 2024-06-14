@@ -127,6 +127,11 @@ for ii in range(args.itr):
     train_data, train_loader = data_provider(args, 'train')
     vali_data, vali_loader = data_provider(args, 'val')
     test_data, test_loader = data_provider(args, 'test')
+    accelerator.print(f'{train_data.cumulative_sizes[-1], vali_data.cumulative_sizes[-1], test_data.cumulative_sizes[-1]}')
+    
+    # accelerator.print(f'train_data shape: {train_data.cummulative_sizes}')
+    # accelerator.print(f'vali_data shape: {vali_data.cummulative_sizes}')
+    # accelerator.print(f'test_data shape: {test_data.cummulative_sizes}')
 
     if args.model == 'Autoformer':
         model = Autoformer.Model(args).float()

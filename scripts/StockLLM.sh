@@ -5,7 +5,7 @@ llama_layers=32
 
 master_port=01097
 num_process=4
-batch_size=1
+batch_size=2
 d_model=16
 d_ff=32
 llm_dim=1536
@@ -21,7 +21,7 @@ accelerate launch --multi_gpu --mixed_precision bf16 --num_processes $num_proces
   --model $model_name \
   --data stock \
   --features M \
-  --seq_len 90 \
+  --seq_len 96 \
   --label_len 0 \
   --pred_len 3 \
   --batch_size $batch_size \
