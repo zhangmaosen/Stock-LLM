@@ -133,19 +133,21 @@ for ii in range(args.itr):
     # accelerator.print(f'vali_data shape: {vali_data.cummulative_sizes}')
     # accelerator.print(f'test_data shape: {test_data.cummulative_sizes}')
 
-    if args.model == 'Autoformer':
-        model = Autoformer.Model(args).float()
-    elif args.model == 'DLinear':
-        model = DLinear.Model(args).float()
-    else:
-        model = StockLLM.Model(args).float()
+
 
     path = os.path.join(args.checkpoints,
                         setting + '-' + args.model_comment)  # unique checkpoint saving path
     args.content = load_content(args)
     if not os.path.exists(path) and accelerator.is_local_main_process:
         os.makedirs(path)
-
+    
+    if args.model == 'Autoformer':
+        model = Autoformer.Model(args).float()
+    elif args.model == 'DLinear':
+        model = DLinear.Model(args).float()
+    else:
+        model = StockLLM.Model(args).float()
+        
     time_now = time.time()
 
     train_steps = len(train_loader)

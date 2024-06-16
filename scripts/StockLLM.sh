@@ -24,6 +24,9 @@ accelerate launch --multi_gpu --mixed_precision bf16 --num_processes $num_proces
   --seq_len 96 \
   --label_len 0 \
   --pred_len 3 \
+  --patch_len 16 \
+  --stride 1 \
+  --prompt_domain 1 \
   --batch_size $batch_size \
   --learning_rate $learning_rate \
   --llm_layers $llama_layers \
