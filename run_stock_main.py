@@ -127,20 +127,27 @@ for ii in range(args.itr):
     train_data, train_loader = data_provider(args, 'train')
     vali_data, vali_loader = data_provider(args, 'val')
     test_data, test_loader = data_provider(args, 'test')
+    accelerator.print(f'{train_data.cumulative_sizes[-1], vali_data.cumulative_sizes[-1], test_data.cumulative_sizes[-1]}')
+    
+    # accelerator.print(f'train_data shape: {train_data.cummulative_sizes}')
+    # accelerator.print(f'vali_data shape: {vali_data.cummulative_sizes}')
+    # accelerator.print(f'test_data shape: {test_data.cummulative_sizes}')
 
-    if args.model == 'Autoformer':
-        model = Autoformer.Model(args).float()
-    elif args.model == 'DLinear':
-        model = DLinear.Model(args).float()
-    else:
-        model = StockLLM.Model(args).float()
+
 
     path = os.path.join(args.checkpoints,
                         setting + '-' + args.model_comment)  # unique checkpoint saving path
     args.content = load_content(args)
     if not os.path.exists(path) and accelerator.is_local_main_process:
         os.makedirs(path)
-
+    
+    if args.model == 'Autoformer':
+        model = Autoformer.Model(args).float()
+    elif args.model == 'DLinear':
+        model = DLinear.Model(args).float()
+    else:
+        model = StockLLM.Model(args).float()
+        
     time_now = time.time()
 
     train_steps = len(train_loader)

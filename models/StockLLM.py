@@ -228,14 +228,15 @@ class Model(nn.Module):
             #     f"the trend of input is {'upward' if trends[b] > 0 else 'downward'}, "
             #     f"top 5 lags are : {lags_values_str}<|<end_prompt>|>"
             # )
-            prompt_ = '这是一只股票的财经新闻内容，请根据内容和日K线特征，对未来的走势进行预测：'
+            prompt_ = f"<|start_prompt|>{self.description}"
             prompt.append(prompt_)
         news_prompts = []
         for i in range(B):
-            news = x_txts[i]
+            news = x_txts[i] # title ， key_note two columns
             p = ' '.join(news.apply(lambda row: ''.join(row.dropna().astype(str)), axis=1))
             if len(p) > 1000:
                 p = p[:1000]
+            p += ',对未来{self.pred_len}天的收盘价进行预测：<|<end_prompt>|>'
             news_prompts.append(p)
         news_prompts = [element for element in news_prompts for _ in range(N)]
         prompt = [' '.join(pair) for pair in zip(prompt, news_prompts)]

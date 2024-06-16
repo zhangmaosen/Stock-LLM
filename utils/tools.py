@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import shutil
+from pathlib import Path
 
 from tqdm import tqdm
 
@@ -67,6 +68,11 @@ class EarlyStopping:
                 self.save_checkpoint(val_loss, model, path)
             self.counter = 0
 
+    def save_logs(self, val_loss, model, path):
+        print(f'save train logs!')
+        file_path =  path + '/val_loss.log'
+        with open(file_path, 'a') as f:
+            f.write(f'val_loss is {val_loss}\n')
     def save_checkpoint(self, val_loss, model, path):
         if self.verbose:
             if self.accelerator is not None:
@@ -79,6 +85,7 @@ class EarlyStopping:
         if self.accelerator is not None:
             model = self.accelerator.unwrap_model(model)
             torch.save(model.state_dict(), path + '/' + 'checkpoint')
+            self.save_logs(val_loss,model, path)
         else:
             torch.save(model.state_dict(), path + '/' + 'checkpoint')
         self.val_loss_min = val_loss
@@ -276,10 +283,12 @@ def test(args, accelerator, model, train_loader, vali_loader, criterion):
 
 
 def load_content(args):
+    #print('args data is',args.data)
     if 'ETT' in args.data:
         file = 'ETT'
     else:
         file = args.data
     with open('./dataset/prompt_bank/{0}.txt'.format(file), 'r') as f:
         content = f.read()
+        #print('content is',content)
     return content
