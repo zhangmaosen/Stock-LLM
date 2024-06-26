@@ -69,10 +69,12 @@ class EarlyStopping:
             self.counter = 0
 
     def save_logs(self, val_loss, model, path):
-        print(f'save train logs!')
+        
         file_path =  path + '/val_loss.log'
-        with open(file_path, 'a') as f:
-            f.write(f'val_loss is {val_loss}\n')
+        if self.accelerator.is_local_main_process:
+            print(f'save train logs!')
+            with open(file_path, 'a') as f:
+                f.write(f'val_loss is {val_loss}\n')
     def save_checkpoint(self, val_loss, model, path):
         if self.verbose:
             if self.accelerator is not None:

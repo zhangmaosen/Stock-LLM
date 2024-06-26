@@ -141,6 +141,10 @@ for ii in range(args.itr):
     if not os.path.exists(path) and accelerator.is_local_main_process:
         os.makedirs(path)
     
+    if accelerator.is_local_main_process:
+        with open(path + '/prompt.log','a+') as f:
+            f.write(args.content)
+        
     if args.model == 'Autoformer':
         model = Autoformer.Model(args).float()
     elif args.model == 'DLinear':

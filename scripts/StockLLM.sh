@@ -1,5 +1,5 @@
 model_name=StockLLM
-train_epochs=10
+train_epochs=20
 learning_rate=0.01
 llama_layers=32
 
@@ -17,14 +17,14 @@ accelerate launch --multi_gpu --mixed_precision bf16 --num_processes $num_proces
   --is_training 1 \
   --root_path /home/userroot/projs/Time-LLM/etl/index_300 \
   --data_path *.csv \
-  --model_id stock_14_3 \
+  --model_id stock_test_002 \
   --model $model_name \
   --data stock \
   --features M \
   --seq_len 96 \
   --label_len 0 \
   --pred_len 3 \
-  --patch_len 16 \
+  --patch_len 3 \
   --stride 1 \
   --prompt_domain 1 \
   --batch_size $batch_size \
