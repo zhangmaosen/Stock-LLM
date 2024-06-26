@@ -58,7 +58,7 @@ class Dataset_Stock(Dataset):
         #df_raw.rename(columns={0:'date',1:'code'}, inplace=True)
         if self.features == 'M' or self.features == 'MS':
             #start_id = 2 + 768*2 
-            cols_data = ['close']#['open','high','low','close','pre_close','change','pct_chg','vol','amount'] #df_raw.columns[start_id:] # ignore date code_idx column and embeddings
+            cols_data = ['close', 'amount'] #['open','high','low','close','pre_close','change','pct_chg','vol','amount'] #df_raw.columns[start_id:] # ignore date code_idx column and embeddings
             df_data = df_raw[cols_data]
         elif self.features == 'S':
             df_data = df_raw[[self.target]]
