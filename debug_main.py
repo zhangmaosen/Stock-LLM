@@ -6,7 +6,7 @@ from torch import nn, optim
 from torch.optim import lr_scheduler
 from tqdm import tqdm
 
-from models import Autoformer, DLinear,  StockLLM
+from models import Autoformer, DLinear, StockLLM
 
 from data_provider.data_factory import data_provider
 import time
@@ -16,9 +16,8 @@ import os
 
 os.environ['CURL_CA_BUNDLE'] = ''
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:64"
-os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
-from utils.tools import del_files, EarlyStopping, adjust_learning_rate, load_content, stock_vali
+from utils.tools import del_files, EarlyStopping, adjust_learning_rate, stock_vali, load_content
 
 parser = argparse.ArgumentParser(description='Time-LLM')
 
@@ -28,17 +27,17 @@ torch.manual_seed(fix_seed)
 np.random.seed(fix_seed)
 
 # basic config
-parser.add_argument('--task_name', type=str, required=True, default='long_term_forecast',
+parser.add_argument('--task_name', type=str, required=False, default='long_term_forecast',
                     help='task name, options:[long_term_forecast, short_term_forecast, imputation, classification, anomaly_detection]')
-parser.add_argument('--is_training', type=int, required=True, default=1, help='status')
-parser.add_argument('--model_id', type=str, required=True, default='test', help='model id')
-parser.add_argument('--model_comment', type=str, required=True, default='none', help='prefix when saving test results')
-parser.add_argument('--model', type=str, required=True, default='Autoformer',
+parser.add_argument('--is_training', type=int, required=False, default=1, help='status')
+parser.add_argument('--model_id', type=str, required=False, default='test', help='model id')
+parser.add_argument('--model_comment', type=str, required=False, default='none', help='prefix when saving test results')
+parser.add_argument('--model', type=str, required=False, default='Autoformer',
                     help='model name, options: [Autoformer, DLinear]')
 parser.add_argument('--seed', type=int, default=2021, help='random seed')
 
 # data loader
-parser.add_argument('--data', type=str, required=True, default='ETTm1', help='dataset type')
+parser.add_argument('--data', type=str, required=False, default='ETTm1', help='dataset type')
 parser.add_argument('--root_path', type=str, default='./dataset', help='root path of the data file')
 parser.add_argument('--data_path', type=str, default='ETTh1.csv', help='data file')
 parser.add_argument('--features', type=str, default='M',
@@ -78,7 +77,7 @@ parser.add_argument('--output_attention', action='store_true', help='whether to 
 parser.add_argument('--patch_len', type=int, default=16, help='patch length')
 parser.add_argument('--stride', type=int, default=8, help='stride')
 parser.add_argument('--prompt_domain', type=int, default=0, help='')
-parser.add_argument('--llm_model', type=str, default='Qwen', help='LLM model') # LLAMA, GPT2, BERT
+parser.add_argument('--llm_model', type=str, default='LLAMA', help='LLM model') # LLAMA, GPT2, BERT
 parser.add_argument('--llm_dim', type=int, default='4096', help='LLM model dimension')# LLama7b:4096; GPT2-small:768; BERT-base:768
 
 
@@ -100,9 +99,28 @@ parser.add_argument('--llm_layers', type=int, default=6)
 parser.add_argument('--percent', type=int, default=100)
 
 args = parser.parse_args()
-ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
-deepspeed_plugin = DeepSpeedPlugin(hf_ds_config='./ds_config_zero2.json')
-accelerator = Accelerator(kwargs_handlers=[ddp_kwargs], deepspeed_plugin=deepspeed_plugin)
+args.task_name = 'long_term_forecast'
+args.is_training = True
+#args.root_path = 'etl/index_300_align_day'
+args.root_path = 'etl/index_300'
+args.data_path = '*.csv'
+args.model_id = 'stock_qwen_7b_test_001'
+args.model = 'StockLLM'
+args.data = 'stock'
+args.seq_len = 96
+args.pred_len = 3
+args.patch_len = 3
+args.stride = 1
+args.label_len = 0
+args.batch_size = 1
+args.num_workers = 0
+args.llm_dim = 3584
+args.llm_model = 'Qwen'
+
+#ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
+#deepspeed_plugin = DeepSpeedPlugin(hf_ds_config='./ds_config_zero2.json')
+#accelerator = Accelerator(kwargs_handlers=[ddp_kwargs], deepspeed_plugin=deepspeed_plugin)
+accelerator = Accelerator(device_placement=False)
 
 for ii in range(args.itr):
     # setting record of experiments
@@ -127,31 +145,28 @@ for ii in range(args.itr):
     train_data, train_loader = data_provider(args, 'train')
     vali_data, vali_loader = data_provider(args, 'val')
     test_data, test_loader = data_provider(args, 'test')
-    accelerator.print(f'{train_data.cumulative_sizes[-1], vali_data.cumulative_sizes[-1], test_data.cumulative_sizes[-1]}')
-    
-    # accelerator.print(f'train_data shape: {train_data.cummulative_sizes}')
-    # accelerator.print(f'vali_data shape: {vali_data.cummulative_sizes}')
-    # accelerator.print(f'test_data shape: {test_data.cummulative_sizes}')
 
+    print(f'train_data shape: {train_data.cummulative_sizes}')
 
+    if args.model == 'Autoformer':
+        model = Autoformer.Model(args).float()
+    elif args.model == 'DLinear':
+        model = DLinear.Model(args).float()
+    else:
+        model = StockLLM.Model(args)
+
+    #model.to('cuda')
 
     path = os.path.join(args.checkpoints,
                         setting + '-' + args.model_comment)  # unique checkpoint saving path
     args.content = load_content(args)
     if not os.path.exists(path) and accelerator.is_local_main_process:
         os.makedirs(path)
-    
+
     if accelerator.is_local_main_process:
-        with open(path + '/prompt.log','a+') as f:
+        with open(path + '/prompt.log','w') as f:
             f.write(args.content)
-        
-    if args.model == 'Autoformer':
-        model = Autoformer.Model(args).float()
-    elif args.model == 'DLinear':
-        model = DLinear.Model(args).float()
-    else:
-        model = StockLLM.Model(args).float()
-        
+
     time_now = time.time()
 
     train_steps = len(train_loader)
@@ -176,9 +191,17 @@ for ii in range(args.itr):
     criterion = nn.MSELoss()
     mae_metric = nn.L1Loss()
 
-    # train_loader, vali_loader, test_loader, model, model_optim, scheduler = accelerator.prepare(
-    #     train_loader, vali_loader, test_loader, model, model_optim, scheduler)
+    train_loader, vali_loader, test_loader, model, model_optim, scheduler = accelerator.prepare(
+        train_loader, vali_loader, test_loader, model, model_optim, scheduler)
 
+    for name, param in model.named_parameters():
+        #print(f"Parameter name: {name}, shape: {param.shape}")
+    # print(f"Parameter's device: {name} on {param.device}")
+        if 'llm_model'  not in name: # and 'word_embeddings' not in name:
+            print(f"{name}")
+            param.data = param.to('cuda:0')
+            print(f"{param.device}")
+    # model.mapping_layer.to('cuda')
     if args.use_amp:
         scaler = torch.cuda.amp.GradScaler()
 
@@ -280,5 +303,5 @@ for ii in range(args.itr):
 accelerator.wait_for_everyone()
 if accelerator.is_local_main_process:
     path = './checkpoints'  # unique checkpoint saving path
-    # del_files(path)  # delete checkpoint files
+    #del_files(path)  # delete checkpoint files
     accelerator.print('success delete checkpoints')

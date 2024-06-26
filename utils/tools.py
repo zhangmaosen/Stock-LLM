@@ -151,6 +151,8 @@ def stock_vali(args, accelerator, model, vali_data, vali_loader, criterion, mae_
             (batch_x, batch_y, batch_x_mark, batch_y_mark) = batched_tensors
             (batch_x_txts, batch_y_txts) = batched_df
 
+            batch_x = batch_x.float().to(accelerator.device)
+            batch_y = batch_y.float().to(accelerator.device)
             batch_x_mark = batch_x_mark.float().to(accelerator.device)
             batch_y_mark = batch_y_mark.float().to(accelerator.device)
 
