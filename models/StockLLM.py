@@ -42,7 +42,7 @@ class Model(nn.Module):
 
 
         if configs.llm_model == 'Qwen':
-            qwen_model_path = '/data/models/qwen2-7b-instruct' #'/data/models/qwen2-1.5b'
+            qwen_model_path = '/root/autodl-tmp/qwen2-7b' #'/data/models/qwen2-1.5b'
             # self.llama_config = LlamaConfig.from_pretrained('/mnt/alps/modelhub/pretrained_model/LLaMA/7B_hf/')
             self.qwen_config = AutoConfig.from_pretrained(qwen_model_path)
             #self.qwen_config.num_hidden_layers = configs.llm_layers
@@ -54,9 +54,7 @@ class Model(nn.Module):
                     qwen_model_path,
                     trust_remote_code=True,
                     local_files_only=True,
-                    config=self.qwen_config,
-                    load_in_4bit=True,
-                    device_map='auto'
+                    config=self.qwen_config
                 )
             
             except EnvironmentError:  # downloads model from HF is not already done
@@ -230,7 +228,7 @@ class Model(nn.Module):
             #     f"the trend of input is {'upward' if trends[b] > 0 else 'downward'}, "
             #     f"top 5 lags are : {lags_values_str}<|<end_prompt>|>"
             # )
-            prompt_ = f"<|start_prompt|>{self.description}，根据该股的新闻内容"
+            prompt_ = f"<|start_prompt|>{self.description}，根据后面的新闻内容:"
             prompt.append(prompt_)
         news_prompts = []
         for i in range(B):

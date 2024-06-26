@@ -75,6 +75,7 @@ class EarlyStopping:
             print(f'save train logs!')
             with open(file_path, 'a') as f:
                 f.write(f'val_loss is {val_loss}\n')
+                
     def save_checkpoint(self, val_loss, model, path):
         if self.verbose:
             if self.accelerator is not None:
@@ -86,8 +87,9 @@ class EarlyStopping:
 
         if self.accelerator is not None:
             model = self.accelerator.unwrap_model(model)
-            torch.save(model.state_dict(), path + '/' + 'checkpoint')
-            self.save_logs(val_loss,model, path)
+            if self.accelerator.is_local_main_process:
+                torch.save(model.state_dict(), path + '/' + 'checkpoint')
+                self.save_logs(val_loss,model, path)
         else:
             torch.save(model.state_dict(), path + '/' + 'checkpoint')
         self.val_loss_min = val_loss
