@@ -142,7 +142,7 @@ for ii in range(args.itr):
         os.makedirs(path)
     
     if accelerator.is_local_main_process:
-        with open(path + '/prompt.log','a+') as f:
+        with open(path + '/prompt.log','w') as f:
             f.write(args.content)
         
     if args.model == 'Autoformer':
